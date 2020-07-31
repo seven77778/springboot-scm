@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.SomainMapper">
+    <insert id="insert" parameterType="com.lsh.scm.entity.Somain">
+        insert into
+        somain(SOID,CustomerCode,Account,CreateTime,TipFee,ProductTotal,SOTotal,PayType,PrePayFee,Status,Remark)
+        values(#{soId}, #{customerCode}, #{account},#{createTime},#{tipFee},
+        #{productTotal},#{soTotal},#{payType}, #{prePayFee}, #{status},
+        #{remark})
+    </insert>
+
+    <delete id="deleteBySoId">
+        delete from somain where soid=#{soId} and status=1
+    </delete>
+    <!-- 修改销售单主信息 -->
+    <update id="update" parameterType="com.lsh.scm.entity.Somain">
+        update somain
+        set
+        CustomerCode=#{customerCode},TipFee=#{tipFee},ProductTotal=#{productTotal},
+        SOTotal=#{soTotal},PayType=#{payType},PrePayFee=#{prePayFee},Remark=#{remark}
+        where soid=#{soId}
+    </update>
+
+    <update id="pay" parameterType="map">
+        update somain set paytime=#{now},payuser=#{account},status='${@com.scm.constants.ScmConfig@PAY}'
+        where soid=#{soId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then '${@com.scm.constants.ScmConfig@RECEIVE}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then '${@com.scm.constants.ScmConfig@ADD}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then '${@com.scm.constants.ScmConfig@RECEIVE}'
+        end)
+    </update>
+
+    <update id="prepay" parameterType="map">
+        update somain
+        set
+        prepaytime=#{now},prepayuser=#{account},status='${@com.scm.constants.ScmConfig@PREPAY}'
+        where soid=#{soId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then '${@com.scm.constants.ScmConfig@ADD}'
+        end)
+    </update>
+
+    <update id="end">
+        update somain set endtime=#{now},enduser=#{account},status=#{endStatus}
+        where soid=#{soId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then '${@com.scm.constants.ScmConfig@PAY}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then '${@com.scm.constants.ScmConfig@RECEIVE}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then '${@com.scm.constants.ScmConfig@PAY}'
+        end)
+    </update>
+
+    <!-- 销售单出库 -->
+    <update id="outstock" parameterType="map">
+        update somain set stocktime=#{now},stockuser=#{account},status='${@com.scm.constants.ScmConfig@RECEIVE}'
+        where soid=#{soId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then '${@com.scm.constants.ScmConfig@ADD}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then '${@com.scm.constants.ScmConfig@PAY}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then '${@com.scm.constants.ScmConfig@PREPAY}'
+        end)
+    </update>
+
+
+    <select id="selectBySoId" resultType="com.lsh.scm.entity.Somain">
+        select * from somain where soid=#{soId}
+    </select>
+
+    <select id="selectCondition" resultType="com.lsh.scm.entity.Somain" parameterType="map">
+        select s.*, c.name customerName from somain s,customer c
+        <where>
+            s.customercode = c.customercode
+            <if test="soId != null and soId != ''">
+                and soId like concat('%',#{soId},'%')
+            </if>
+            <if test="customerCode != null and customerCode != ''">
+                and s.customerCode = #{customerCode}
+            </if>
+            <if test="payType != null and payType != ''">
+                and payType = #{payType}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                and createtime >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                and createtime &lt;= concat(#{endDate}, ' 23:59:59')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectSomain" resultType="com.lsh.scm.entity.Somain" parameterType="map">
+        select s.*, c.name customerName from somain s,customer c
+        <where>
+            s.customercode = c.customercode
+            <if test="payType != null and payType != ''">
+                and payType=#{payType}
+            </if>
+            <choose>
+                <when test="type == 1">
+                    and status = '${@com.scm.constants.ScmConfig@ADD}'
+                    and account=#{account}
+                </when>
+                <when test="type == 4">
+                    and (
+                    (paytype = '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    or
+                    (paytype = '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@RECEIVE}')
+                    or
+                    (paytype = '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    )
+                    and account=#{account}
+                </when>
+                <when test="type == 2">
+                    and (
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@ADD}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PREPAY}')
+                    )
+                </when>
+                <when test="type == 3">
+                    and (
+                    (paytype = '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and
+                    status = '${@com.scm.constants.ScmConfig@RECEIVE}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@ADD}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and (status =
+                    '${@com.scm.constants.ScmConfig@ADD}' or status =
+                    '${@com.scm.constants.ScmConfig@RECEIVE}'))
+                    )
+                </when>
+                <otherwise>
+                    and false
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+
+    <!-- 月度报表  -->
+    <select id="report" resultType="java.util.HashMap">
+        select
+        count(*) totalnum, count(endtime) endtotalnum, sum(sototal) sototal,
+        sum(case
+        when paytime is not null then sototal
+        when paytime is null and PrePayTime is not null then PrePayFee
+        else 0
+        end) totalpay
+        from somain
+        where
+        SUBSTR(CreateTime FROM 1 FOR 7)=#{time}
+    </select>
+
+</mapper>

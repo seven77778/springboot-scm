@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.PomainMapper">
+    <insert id="insert" parameterType="com.lsh.scm.entity.Pomain">
+        insert into
+        pomain(POID,VenderCode,Account,CreateTime,TipFee,ProductTotal,POTotal,PayType,PrePayFee,Status,Remark)
+        values(#{poId}, #{venderCode}, #{account},#{createTime},#{tipFee},
+        #{productTotal},#{poTotal},#{payType}, #{prePayFee}, #{status},
+        #{remark})
+    </insert>
+
+    <delete id="deleteByPoId">
+        delete from pomain where poid=#{poId} and status=1
+    </delete>
+    <!-- 修改采购单主信息 -->
+    <update id="update" parameterType="com.lsh.scm.entity.Pomain">
+        update pomain
+        set
+        VenderCode=#{venderCode},TipFee=#{tipFee},ProductTotal=#{productTotal},
+        POTotal=#{poTotal},PayType=#{payType},PrePayFee=#{prePayFee},Remark=#{remark}
+        where poid=#{poId}
+    </update>
+
+    <update id="pay" parameterType="map">
+        update pomain set
+        paytime=#{now},payuser=#{account},status='${@com.scm.constants.ScmConfig@PAY}'
+        where poid=#{poId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then
+        '${@com.scm.constants.ScmConfig@RECEIVE}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then
+        '${@com.scm.constants.ScmConfig@ADD}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then
+        '${@com.scm.constants.ScmConfig@RECEIVE}'
+        end)
+    </update>
+
+    <update id="prepay" parameterType="map">
+        update pomain
+        set
+        prepaytime=#{now},prepayuser=#{account},status='${@com.scm.constants.ScmConfig@PREPAY}'
+        where poid=#{poId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then
+        '${@com.scm.constants.ScmConfig@ADD}'
+        end)
+    </update>
+
+    <update id="end" parameterType="map">
+        update pomain set endtime=#{now},enduser=#{account},status=#{endStatus}
+        where poid=#{poId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then
+        '${@com.scm.constants.ScmConfig@PAY}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then
+        '${@com.scm.constants.ScmConfig@RECEIVE}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then
+        '${@com.scm.constants.ScmConfig@PAY}'
+        end)
+    </update>
+
+    <!-- 采购单入库 -->
+    <update id="instock" parameterType="map">
+        update pomain set
+        stocktime=#{now},stockuser=#{account},status='${@com.scm.constants.ScmConfig@RECEIVE}'
+        where poid=#{poId} and status = (
+        case paytype
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' then
+        '${@com.scm.constants.ScmConfig@ADD}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' then
+        '${@com.scm.constants.ScmConfig@PAY}'
+        when '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' then
+        '${@com.scm.constants.ScmConfig@PREPAY}'
+        end)
+    </update>
+
+
+    <select id="selectByPoId" resultType="com.lsh.scm.entity.Pomain">
+        select * from pomain where
+        poid=#{poId}
+    </select>
+
+    <select id="selectCondition" resultType="com.lsh.scm.entity.Pomain"
+            parameterType="map">
+        select p.*,v.name venderName from pomain p,vender v
+        <where>
+            p.vendercode = v.vendercode
+            <if test="poId != null and poId != ''">
+                and poId like concat('%',#{poId},'%')
+            </if>
+            <if test="venderCode != null and venderCode != ''">
+                and p.venderCode = #{venderCode}
+            </if>
+            <if test="payType != null and payType != ''">
+                and payType = #{payType}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                and createtime >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                and createtime &lt;= concat(#{endDate}, ' 23:59:59')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectPomain" resultType="com.lsh.scm.entity.Pomain"
+            parameterType="map">
+        select p.*,v.name venderName from pomain p,vender v
+        <where>
+            p.vendercode = v.vendercode
+            <if test="payType != null and payType != ''">
+                and payType=#{payType}
+            </if>
+            <choose>
+                <when test="type == 1">
+                    and status = '${@com.scm.constants.ScmConfig@ADD}'
+                    and account=#{account}
+                </when>
+                <!-- 可了结的 -->
+                <when test="type == 4">
+                    and (
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@RECEIVE}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    )
+                    and account=#{account}
+                </when>
+                <!-- 可入库的 -->
+                <when test="type == 2">
+                    and (
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@ADD}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PAY}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@PREPAY}')
+                    )
+                </when>
+                <!-- 可付款的 -->
+                <when test="type == 3">
+                    and (
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_LAST_PAY}' and
+                    status =
+                    '${@com.scm.constants.ScmConfig@RECEIVE}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_FIRST_PAY}' and status =
+                    '${@com.scm.constants.ScmConfig@ADD}')
+                    or
+                    (paytype =
+                    '${@com.scm.constants.ScmConfig@PAYTYPE_PRE_PAY}' and (status =
+                    '${@com.scm.constants.ScmConfig@ADD}' or status =
+                    '${@com.scm.constants.ScmConfig@RECEIVE}'))
+                    )
+                </when>
+                <otherwise>
+                    and false
+                </otherwise>
+            </choose>
+
+        </where>
+    </select>
+
+    <!-- 月度报表 -->
+    <select id="report" resultType="java.util.HashMap">
+        select
+        count(*) totalnum, count(endtime) endtotalnum, sum(pototal) pototal,
+        sum(case
+        when paytime is not null then pototal
+        when paytime is null and PrePayTime is not null then PrePayFee
+        else 0
+        end) totalpay
+        from pomain
+        where
+        SUBSTR(CreateTime FROM 1 FOR 7)=#{time}
+    </select>
+
+</mapper>

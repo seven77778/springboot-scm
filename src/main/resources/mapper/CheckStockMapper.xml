@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.CheckStockMapper">
+    <insert id="insert" parameterType="com.lsh.scm.entity.CheckStock">
+        insert into CheckStock (productCode,originNum,realNum,stockTime,createUser,description,type)
+        values (#{productCode},#{originNum},#{realNum},#{stockTime},#{createUser},#{description},#{type})
+    </insert>
+
+
+</mapper>

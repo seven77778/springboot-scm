@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.StockRecordMapper">
+    <insert id="insert" parameterType="Map">
+        insert into
+        stockrecord(productcode,ordercode,stocknum,stocktype,stocktime,createuser)
+        values
+        <foreach collection="items" separator="," item="item">
+            (#{item.productCode},
+            #{id},#{item.num},#{stockType},#{stockTime},#{account})
+        </foreach>
+    </insert>
+
+    <insert id="insertCheck"
+            parameterType="com.lsh.scm.entity.StockRecord">
+        insert into
+        stockrecord(productcode,stocknum,stocktype,stocktime,createuser)
+        values
+        (#{productCode},#{stockNum},#{stockType},#{stockTime},
+        #{createUser})
+    </insert>
+    <select id="selectStockRecordByProductCode"
+            resultType="java.util.HashMap">
+        select stockTime,orderCode,createUser,stockNum,stockType
+        from
+        stockrecord where productCode=#{productCode}
+        <choose>
+            <when test="stockType == 1">
+                and stockType
+                in('${@com.scm.constants.ScmConfig@PO_INSTOCK}','${@com.scm.constants.ScmConfig@CHECK_INSTOCK}')
+            </when>
+            <when test="stockType == 2">
+                and stockType
+                in('${@com.scm.constants.ScmConfig@SO_OUTSTOCK}','${@com.scm.constants.ScmConfig@CHECK_OUTSTOCK}')
+            </when>
+        </choose>
+
+    </select>
+
+    <select id="selectInstockReport" resultType="java.util.HashMap">
+        select count(0)
+        total,sum(stockNum) totalNum,sum(ProductTotal) productTotal
+        from
+        stockrecord s,pomain p
+        where OrderCode=poId and substr(s.StockTime from
+        1 for 7)=#{time}
+    </select>
+
+    <select id="selectOutstockReport" resultType="java.util.HashMap">
+        select count(0)
+        total,sum(stockNum) totalNum,sum(ProductTotal) productTotal
+        from
+        stockrecord s,somain p
+        where OrderCode=soId and substr(s.StockTime from
+        1 for 7)=#{time}
+    </select>
+
+    <select id="selectProductStockRecord"
+            resultType="java.util.HashMap">
+        select p.ProductCode, name,
+        num-ifnull(inNum,0)+ifnull(outNum, 0) num from
+        product p
+        LEFT JOIN
+        (select ProductCode, sum(stockNum) inNum from stockrecord
+        where
+        SUBSTR(stockTime from 1 for 7)>=#{time} and StockType in
+        ('${@com.scm.constants.ScmConfig@PO_INSTOCK}','${@com.scm.constants.ScmConfig@CHECK_INSTOCK}')
+        GROUP BY ProductCode) t
+        on p.ProductCode=t.ProductCode
+        LEFT JOIN
+        (select
+        ProductCode,sum(stockNum) outNum from stockrecord
+        WHERE
+        SUBSTR(stockTime from 1 for 7)>=#{time} and StockType in
+        ('${@com.scm.constants.ScmConfig@SO_OUTSTOCK}','${@com.scm.constants.ScmConfig@CHECK_OUTSTOCK}')
+        GROUP BY ProductCode) s
+        on p.ProductCode=s.ProductCode
+    </select>
+
+    <select id="selectInstockPomain" resultType="java.util.HashMap">
+        select t.*,name
+        from
+        (select poId,s.stockTime,s.productCode,stockNum,productTotal
+        from stockrecord s, pomain
+        where orderCode=poId and substr(s.StockTime from 1 for 7)=#{time})t,
+        product p
+        where t.productCode=p.ProductCode
+    </select>
+    <select id="selectOutstockPomain" resultType="java.util.HashMap">
+        select t.*,name
+        from
+        (select soId,s.stockTime,s.productCode,stockNum,productTotal
+        from stockrecord s, somain
+        where orderCode=soId and substr(s.StockTime from 1 for 7)=#{time})t,
+        product p
+        where t.productCode=p.ProductCode
+    </select>
+
+</mapper>

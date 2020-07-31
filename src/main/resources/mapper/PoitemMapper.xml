@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.PoitemMapper">
+    <insert id="insert" parameterType="map">
+        insert into poitem(POID,ProductCode,UnitPrice,Num,UnitName,ItemPrice) values
+        <foreach collection="poitems" separator="," item="poitem">
+            (#{poId}, #{poitem.productCode}, #{poitem.unitPrice},#{poitem.num},#{poitem.unitName},#{poitem.itemPrice})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByPoid">
+        delete from poitem where poid=#{poId}
+    </delete>
+
+    <select id="selectByPoId" resultType="com.lsh.scm.entity.Poitem">
+        select pi.*, name as productName from poitem pi,product pro where poid=#{poId} and
+        pi.productCode=pro.productCode
+    </select>
+
+</mapper>

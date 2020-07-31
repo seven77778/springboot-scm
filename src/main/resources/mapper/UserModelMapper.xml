@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.UserModelMapper">
+    <insert id="insertUserModel" parameterType="map">
+        insert into usermodel values
+        <foreach collection="modelcodes" separator="," item="modelcode">
+            (#{account}, #{modelcode})
+        </foreach>
+    </insert>
+
+    <delete id="deleteUserModel">
+        delete from usermodel where account=#{account}
+    </delete>
+
+    <select id="selectUserModel" resultType="com.lsh.scm.entity.UserModel">
+        select u.modelCode,modelName from usermodel u,systemmodel s where u.modelcode = s.modelcode and
+        account=#{account}
+    </select>
+
+    <select id="isAllow" resultType="com.lsh.scm.entity.UserModel" parameterType="Map">
+        select * from scmuser s,usermodel u,systemmodel s2
+        where s.account = u.account
+        and s2.modelcode=u.modelcode
+        and s.account=#{account} and s2.modeluri=#{modelUri}
+    </select>
+</mapper>

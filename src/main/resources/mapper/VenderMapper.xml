@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.VenderMapper">
+    <insert id="addVender" parameterType="com.lsh.scm.entity.Vender">
+        insert into vender values(#{venderCode}, #{name}, #{passWord},#{contactor},#{address},
+        #{postCode},#{tel},#{fax}, #{createDate})
+    </insert>
+
+    <delete id="deleteVender">
+        delete from vender where venderCode=#{venderCode}
+    </delete>
+
+    <update id="updateVender" parameterType="com.lsh.scm.entity.Vender">
+        update vender
+        set
+        name=#{name},password=#{passWord},contactor=#{contactor},address=#{address},
+        postCode=#{postCode},tel=#{tel},fax=#{fax},createDate=#{createDate}
+        where venderCode=#{venderCode}
+    </update>
+
+
+    <select id="selectByVenderCode" resultType="com.lsh.scm.entity.Vender">
+        select * from vender where venderCode#{venderCode}
+    </select>
+
+    <select id="select" resultType="com.lsh.scm.entity.Vender">
+        select * from vender
+        <where>
+            <if test="venderCode != null and venderCode != ''">
+                and venderCode like concat('%',#{venderCode},'%')
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%',#{name},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

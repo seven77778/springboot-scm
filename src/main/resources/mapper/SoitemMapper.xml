@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.SoitemMapper">
+    <insert id="insert" parameterType="map">
+        insert into soitem(SOID,ProductCode,UnitPrice,Num,UnitName,ItemPrice) values
+        <foreach collection="soitems" separator="," item="soitem">
+            (#{soId}, #{soitem.productCode}, #{soitem.unitPrice},#{soitem.num},#{soitem.unitName},#{soitem.itemPrice})
+        </foreach>
+    </insert>
+
+    <delete id="deleteBySoId">
+        delete from soitem where soid=#{soId}
+    </delete>
+
+    <select id="selectBySoId" resultType="com.lsh.scm.entity.Soitem">
+        select si.*, name as productName from soitem si,product pro where soid=#{soId} and
+        si.productCode=pro.productCode
+    </select>
+
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.PayRecordMapper">
+    <insert id="insert" parameterType="com.lsh.scm.entity.PayRecord">
+        insert into payrecord
+        (pay_time,pay_price,account,ordercode,pay_type)
+        values
+        (#{payTime},#{payPrice},#{account},#{ordercode},#{payType})
+    </insert>
+
+    <select id="report" resultType="java.util.HashMap">
+        select * FROM
+        (select count(0)
+        receCount, sum(pay_price) recePrice from payrecord where
+        pay_type
+        in('${@com.scm.constants.ScmConfig@RECEIVE_MONEY}','${@com.scm.constants.ScmConfig@RECEIVE_PRE_MONEY}')
+        and SUBSTR(pay_time FROM 1 FOR 7)=#{time}) t1,
+        (select count(0)
+        payCount, sum(pay_price) payPrice from payrecord
+        where pay_type
+        in('${@com.scm.constants.ScmConfig@PAY_MONEY}','${@com.scm.constants.ScmConfig@PAY_PRE_MONEY}')
+        and SUBSTR(pay_time FROM 1 FOR 7)=#{time}) t2
+    </select>
+
+    <select id="selectRecord" parameterType="java.util.Map"
+            resultType="com.lsh.scm.entity.PayRecord">
+        select record_id recordId,pay_time payTime, pay_price
+        payPrice,ordercode,pr.account,payType
+        from payrecord pr, ${mainTable}
+        <where>
+            ordercode = ${field}
+            <if test="type != null and type=='收入'">
+                and pay_type in(1,3)
+            </if>
+            <if test="type != null and type=='支出'">
+                and pay_type in(2,4)
+            </if>
+            <if test="startDate != null and startDate != ''">
+                and pay_time >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                and pay_time &lt;= concat(#{endDate}, ' 23:59:59')
+            </if>
+            <if test="no != null and no != ''">
+                and ordercode LIKE concat('%', #{no},'%')
+            </if>
+            <if test="payType != null and payType != ''">
+                and payType = #{payType}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="selectPayDetail" resultType="java.util.HashMap">
+        select
+        poId,createTime,pay_time,pay_price,pr.account,status
+        from payrecord pr,
+        pomain po
+        where ordercode=poid and SUBSTR(pay_time FROM 1 FOR
+        7)=#{time} and
+        pay_type
+        in('${@com.scm.constants.ScmConfig@PAY_MONEY}','${@com.scm.constants.ScmConfig@PAY_PRE_MONEY}')
+    </select>
+    <select id="selectReceDetail" resultType="java.util.HashMap">
+        select
+        soId,createTime,pay_time,pay_price,p.account,status
+        from payrecord p, somain s
+        where ordercode=soid and SUBSTR(pay_time FROM 1 FOR 7)=#{time}
+        and pay_type
+        in('${@com.scm.constants.ScmConfig@RECEIVE_MONEY}','${@com.scm.constants.ScmConfig@RECEIVE_PRE_MONEY}')
+    </select>
+</mapper>

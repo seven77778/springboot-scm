@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.CategoryMapper">
+    <insert id="addCategory" parameterType="com.lsh.scm.entity.Category">
+        insert into category
+        values(#{categoryId}, #{name}, #{remark})
+    </insert>
+
+    <delete id="deleteCategory">
+        delete from category where categoryId=#{categoryId}
+    </delete>
+
+    <update id="updateCategory"
+            parameterType="com.lsh.scm.entity.Category">
+        update category
+        set
+        name=#{name},remark=#{remark}
+        where categoryId=#{categoryId}
+    </update>
+
+
+    <select id="selectByCategoryId"
+            resultType="com.lsh.scm.entity.Category">
+        select * from Category where categoryCode#{categoryId}
+    </select>
+
+    <select id="select" resultType="com.lsh.scm.entity.Category">
+        select * from category
+        <where>
+            <if test="categoryId != null and categoryId != ''">
+                and categoryId like concat('%',#{categoryId},'%')
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%',#{name},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

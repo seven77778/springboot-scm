@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.ScmuserMapper">
+    <insert id="insertUser" parameterType="com.lsh.scm.entity.Scmuser">
+        insert into scmuser values(#{account}, #{passWord}, #{name},#{createDate},#{status})
+    </insert>
+
+    <delete id="deleteUser">
+        delete from scmuser where account=#{account}
+    </delete>
+
+    <update id="updateScmuser" parameterType="com.lsh.scm.entity.Scmuser">
+        update scmuser set name=#{name},password=#{passWord},status=#{status} where account=#{account}
+    </update>
+
+    <select id="login" parameterType="map" resultType="com.lsh.scm.entity.Scmuser">
+        select * from scmuser where account=#{username} and password=#{password}
+    </select>
+
+    <select id="selectByAccount" resultType="com.lsh.scm.entity.Scmuser">
+        select account,name,password,status
+        from scmuser
+        where account=#{account}
+    </select>
+
+    <select id="select" resultMap="scmuserResultMap">
+        select account,name,password,createDate,status from scmuser
+    </select>
+    <select id="selectModels" resultType="com.lsh.scm.entity.UserModel">
+        select um.modelCode, modelName from usermodel um, systemmodel sm
+        where um.modelCode=sm.modelCode and account=#{account}
+    </select>
+
+    <resultMap type="com.lsh.scm.entity.Scmuser" id="scmuserResultMap">
+        <!--
+            id - id列和java类属性和列名映射
+            result - 非id列的java类属性和列名映射
+                property - 对应java类中的属性名称 要有对应的set方法
+                column - 对应查询结果的列名或者是别名
+
+         -->
+        <id property="account" column="account"/>
+        <result property="passWord" column="password"/>
+        <result property="name" column="name"/>
+        <result property="createDate" column="createDate"/>
+        <result property="status" column="status"/>
+        <!--
+            一对多关系的映射 映射的是一个集合类
+            property 对应的java类属性名称
+            ofType - 集合类中单个对象的数据类型
+          -->
+        <collection property="models" ofType="com.lsh.scm.entity.UserModel" column="account" select="selectModels">
+            <result property="modelCode" column="modelCode"/>
+            <result property="modelName" column="modelName"/>
+        </collection>
+    </resultMap>
+
+</mapper>

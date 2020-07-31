@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.CustomerMapper">
+    <insert id="addCustomer" parameterType="com.lsh.scm.entity.Customer">
+        insert into customer values(#{customerCode}, #{name}, #{passWord},#{contactor},#{address},
+        #{postCode},#{tel},#{fax}, #{createDate})
+    </insert>
+
+    <delete id="deleteCustomer">
+        delete from customer where customerCode=#{customerCode}
+    </delete>
+
+    <update id="updateCustomer" parameterType="com.lsh.scm.entity.Customer">
+        update customer
+        set
+        name=#{name},password=#{passWord},contactor=#{contactor},address=#{address},
+        postCode=#{postCode},tel=#{tel},fax=#{fax},createDate=#{createDate}
+        where customerCode=#{customerCode}
+    </update>
+
+
+    <select id="selectByCustomerCode" resultType="com.lsh.scm.entity.Customer">
+        select * from customer where customerCode#{customerCode}
+    </select>
+
+    <select id="select" resultType="com.lsh.scm.entity.Customer">
+        select * from customer
+        <where>
+            <if test="customerCode != null and customerCode != ''">
+                and customerCode like concat('%',#{customerCode},'%')
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%',#{name},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lsh.scm.dao.ProductMapper">
+    <insert id="addProduct" parameterType="com.lsh.scm.entity.Product">
+        insert into product
+        values(#{productCode},#{categoryId}, #{name},
+        #{unitName},#{price},#{createDate},#{remark},0,0,0)
+    </insert>
+
+    <delete id="deleteProduct">
+        delete from product where productCode=#{productCode}
+    </delete>
+
+    <update id="updateProduct"
+            parameterType="com.lsh.scm.entity.Product">
+        update product
+        set
+        name=#{name},categoryId=#{categoryId},unitName=#{unitName},price=#{price},
+        remark=#{remark},createDate=#{createDate}
+        where
+        productCode=#{productCode}
+    </update>
+
+
+    <select id="selectByProductCode"
+            resultType="com.lsh.scm.entity.Product">
+        select * from product where productCode#{productCode}
+    </select>
+
+    <select id="select" resultType="com.lsh.scm.entity.Product">
+        select p.*,c.name as categoryName from product p,category c
+        <where>
+            <if test="productCode != null and productCode != ''">
+                and productCode like concat('%',#{productCode},'%')
+            </if>
+            <if test="name != null and name != ''">
+                and p.name like concat('%',#{name},'%')
+            </if>
+            <if test="categoryId != null and categoryId != ''">
+                and p.categoryId like concat('%',#{categoryId},'%')
+            </if>
+            and p.categoryId = c.categoryId
+        </where>
+    </select>
+    <select id="selectStock" parameterType="map"
+            resultType="com.lsh.scm.entity.Product">
+        select * from product
+        <where>
+            <if test="productCode != null and productCode != ''">
+                and productCode like concat('%',#{productCode},'%')
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="min != null and min != ''">
+                and num >= #{min}
+            </if>
+            <if test="max != null and max != ''">
+                and num &lt;= #{max}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectTotalNum" resultType="java.util.HashMap">
+        SELECT total+outTotal-inTotal totalNum from
+        (select sum(num) total from product) t1,
+        (select ifnull(sum(stockNum),0) inTotal from stockrecord
+        where SUBSTR(stockTime from 1 for 7)>=#{time} and StockType in
+        ('${@com.scm.constants.ScmConfig@PO_INSTOCK}','${@com.scm.constants.ScmConfig@CHECK_INSTOCK}')) t2,
+        (select ifnull(sum(stockNum),0) outTotal from stockrecord
+        where SUBSTR(stockTime from 1 for 7)>=#{time} and StockType in
+        ('${@com.scm.constants.ScmConfig@SO_OUTSTOCK}','${@com.scm.constants.ScmConfig@CHECK_OUTSTOCK}')) t3
+    </select>
+
+    <update id="updatePoNum" parameterType="map">
+        <choose>
+            <when test="type == 1">
+                update product set ponum=ponum+ case productCode
+                <foreach collection="poitems" item="poitem" close="end">
+                    when
+                    #{poitem.productCode} then #{poitem.num}
+                </foreach>
+                <where>
+                    <foreach collection="poitems" item="poitem" open="("
+                             separator=") or (" close=")">
+                        productCode=#{poitem.productCode} and
+                        ponum+#{poitem.num}>=0
+                    </foreach>
+                </where>
+
+            </when>
+            <when test="type == 2">
+                update product set ponum=ponum- case productCode
+                <foreach collection="poitems" item="poitem" close="end">
+                    when
+                    #{poitem.productCode} then #{poitem.num}
+                </foreach>
+                <where>
+                    <foreach collection="poitems" item="poitem" open="("
+                             separator=") or (" close=")">
+                        productCode=#{poitem.productCode} and
+                        ponum-#{poitem.num}>=0
+                    </foreach>
+                </where>
+            </when>
+        </choose>
+    </update>
+    <update id="updateSoNum" parameterType="map">
+        <choose>
+            <when test="type == 1">
+                update product set sonum=sonum+ case productCode
+                <foreach collection="soitems" item="soitem" close="end">
+                    when
+                    #{soitem.productCode} then #{soitem.num}
+                </foreach>
+                <where>
+                    <foreach collection="soitems" item="soitem" open="("
+                             separator=") or (" close=")">
+                        productCode=#{soitem.productCode} and
+                        num+sonum-#{soitem.num}>=0
+                    </foreach>
+                </where>
+
+            </when>
+            <when test="type == 2">
+                update product set sonum=sonum- case productCode
+                <foreach collection="soitems" item="soitem" close="end">
+                    when
+                    #{soitem.productCode} then #{soitem.num}
+                </foreach>
+                <where>
+                    <foreach collection="soitems" item="soitem" open="("
+                             separator=") or (" close=")">
+                        productCode=#{soitem.productCode} and
+                        num+sonum-#{soitem.num}>=0
+                    </foreach>
+                </where>
+            </when>
+        </choose>
+    </update>
+
+
+    <update id="instock" parameterType="java.util.List">
+        update product set ponum=ponum-(
+        case productCode
+        <foreach collection="list" item="poitem" close="end">
+            when
+            #{poitem.productCode} then #{poitem.num}
+        </foreach>
+        ),num=num+(
+        case productCode
+        <foreach collection="list" item="poitem" close="end">
+            when
+            #{poitem.productCode} then #{poitem.num}
+        </foreach>
+        )
+        <where>
+            <foreach collection="list" item="poitem" open="("
+                     separator=") or (" close=")">
+                productCode = #{poitem.productCode} and
+                ponum-#{poitem.num} >= 0
+            </foreach>
+        </where>
+    </update>
+
+    <update id="outstock" parameterType="java.util.List">
+        update product set sonum=sonum-(
+        case productCode
+        <foreach collection="list" item="soitem" close="end">
+            when
+            #{soitem.productCode} then #{soitem.num}
+        </foreach>
+        ),num=num-(
+        case productCode
+        <foreach collection="list" item="soitem" close="end">
+            when
+            #{soitem.productCode} then #{soitem.num}
+        </foreach>
+        )
+        <where>
+            <foreach collection="list" item="soitem" open="("
+                     separator=") or (" close=")">
+                productCode=#{soitem.productCode} and
+                num-#{soitem.num}>=0
+            </foreach>
+        </where>
+    </update>
+
+    <!-- 更新库存 -->
+    <update id="check" parameterType="java.util.Map">
+        update product set
+        num=num+#{num} where productCode=#{productCode} and num+#{num}>=0
+    </update>
+</mapper>
