@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans        http://www.springframework.org/schema/beans/spring-beans.xsd        http://code.alibabatech.com/schema/dubbo        http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <!-- executes 最大线程数 -->
+
+    <dubbo:service  id="dubboService"
+            interface="com.lsh.scm.dubbo.MyDubboService"
+                   ref="dubboServiceImpl" retries="0" executes="10"
+                   timeout="10000"
+                   />
+
+</beans>
